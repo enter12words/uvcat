@@ -1,0 +1,44 @@
+# `wrangler pages dev` configuration for the uvcat blog.
+# The Worker bundle is generated into ./public/_worker.js by `npm run build`;
+# Pages runs it in "advanced mode", so every request goes through Hono.
+#
+# NOTE: there is intentionally no [[r2_buckets]] block — this deployment keeps
+# uploaded images inside D1 (see the `images` table in schema.sql) so that no
+# R2 subscription / payment method is required. Add a binding named BUCKET if
+# you ever enable R2; the code prefers R2 automatically when it is present.
+
+name = "uvcat"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./public"
+
+# -----------------------------------------------------------------
+# D1 database binding - MUST be named DB
+# -----------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "blog-db"
+database_id = "dad1c5da-9fed-4043-a5c5-0404b76bffc2"
+migrations_dir = "migrations"
+
+# -----------------------------------------------------------------
+# Plain-text variables (non-secret).
+# Secrets - SITE_PASSWORD / ADMIN_USER / ADMIN_PASS / COOKIE_SECRET -
+# are NOT committed here. Set them in the Cloudflare dashboard under
+# Settings -> Environment variables, or upload with:
+#   npx wrangler pages secret put SITE_PASSWORD --project-name uvcat
+# For local development put them in .dev.vars (.dev.vars.example).
+# -----------------------------------------------------------------
+[vars]
+# Public base URL for uploads. Leave EMPTY when no R2 bucket is bound:
+# the worker then serves images from D1 at /api/images/<yyyy>/<mm>/<file>.
+R2_PUBLIC_URL = ""
+# Blog identity shown in the sidebar / <title>
+BLOG_NAME = "uvcat's blog"
+BLOG_DESCRIPTION = "记录折腾，热爱生活"
+# Sidebar avatar (any absolute URL or a data: URI)
+AVATAR_URL = "/static/avatar.svg"
+# GitHub profile link shown in the sidebar
+GITHUB_URL = "https://github.com/enter12words/uvcat"
+# Session lifetime in seconds (7 days)
+SESSION_TTL = "604800"
