@@ -1,0 +1,28 @@
+# =============================================================
+#  wrangler pages dev 读取本文件的变量（不要提交到仓库！）
+#  copy .dev.vars.example .dev.vars
+#  .dev.vars 已在 .gitignore 中，不会被提交
+# =============================================================
+
+# 全站访客密码（必填）
+SITE_PASSWORD = "let-me-in"
+
+# 管理员账号 / 密码（必填）
+ADMIN_USER = "admin"
+ADMIN_PASS = "admin123"
+
+# 用于 HMAC 签名 Cookie 的密钥（必填），32 位以上随机字符串
+# 代码同时兼容 JWT_SECRET 这个变量名，但请统一用 COOKIE_SECRET
+COOKIE_SECRET = "please-change-this-to-a-random-32char-string"
+
+# 图片公开域名：
+#   未绑定 R2  -> 留空，图片走 /api/images/<key>
+#   已绑定 R2  -> 填桶的公开域名，末尾不要带 /
+R2_PUBLIC_URL = ""
+
+# ---- 以下与 wrangler.toml 的 [vars] 重复，可在此覆盖 ----
+BLOG_NAME = "uvcat's blog"
+BLOG_DESCRIPTION = "记录折腾，热爱生活"
+AVATAR_URL = "/static/avatar.svg"
+GITHUB_URL = "https://github.com/enter12words/uvcat"
+SESSION_TTL = "604800"
