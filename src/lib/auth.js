@@ -204,7 +204,12 @@ export const COOKIE_SITE = 'site_auth';
 export const COOKIE_ADMIN = 'admin_auth';
 
 const ROLE_COOKIE = { site: COOKIE_SITE, admin: COOKIE_ADMIN };
-const ROLE_PATH = { site: '/', admin: '/admin' };
+const ROLE_PATH = { site: '/', admin: '/' };
+// Both session cookies use Path="/". The admin cookie used to be scoped to
+// "/admin", which meant the browser never attached it to /api/admin/* — the
+// dashboard page loaded fine but every save/upload returned 401 ("session
+// expired"). Path cannot be a list, so "/" is the only value that covers both
+// the dashboard and its APIs.
 
 /**
  * Parse a Cookie header into a plain object.

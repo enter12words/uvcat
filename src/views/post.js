@@ -4,7 +4,7 @@
 
 import { renderPage, icons, articleTime, articleCopyright, renderToc } from './layout.js';
 import { esc, formatDate, envStr } from '../lib/utils.js';
-import { renderMarkdown, buildToc, readingTime, markdownToText } from '../lib/markdown.js';
+import { renderMarkdown, readingTime, markdownToText } from '../lib/markdown.js';
 
 /**
  * @param {object} opts
@@ -19,14 +19,12 @@ export function renderPost({ post, neighbours = { prev: null, next: null }, view
   const slug = post.slug;
   const href = `/p/${encodeURIComponent(slug)}`;
 
-  // 1. Build the TOC first so heading ids in the HTML and the right-hand
-  //    sidebar are guaranteed to agree.
-  const toc = buildToc(post.content ?? '');
-  const headingIds = new Set(toc.map((t) => t.id));
-
-  // NOTE: renderMarkdown re-slugifies headings; feeding it the same ordered
-  // id set keeps both passes in lock-step (duplicate headings get -2, -3 …).
-  const html = renderMarkdown(post.content ?? '', { headingIds });
+  // Render once and collect the headings on the way: the ids in the article
+  // body and the ids in the right-hand sidebar then come from the same pass and
+  // can never disagree (and no heading gets a spurious "-2" suffix).
+  const collected = [];
+  const html = renderMarkdown(post.content ?? '', { collect: collected });
+  const toc = collected.filter((h) => h.level === 2 || h.level === 3);
 
   const minutes = readingTime(post.content ?? '');
   const description = post.summary || markdownToText(post.content ?? '').slice(0, 150);

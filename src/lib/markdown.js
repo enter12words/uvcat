@@ -159,8 +159,14 @@ const RE_TABLE_SEP = /^ {0,3}\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
 
 /**
  * Render a Markdown document to HTML.
+ *
+ * Heading anchors are generated in a single pass, so the ids in the HTML can
+ * never drift from the ids used by a table of contents: pass `collect` (an
+ * array) and every heading is appended to it as `{ level, text, id }` while the
+ * HTML is built.
+ *
  * @param {string} markdown
- * @param {{ headingIds?: Set<string> }} [opts]
+ * @param {{ collect?: { level: number, text: string, id: string }[], headingIds?: Set<string> }} [opts]
  * @returns {string}
  */
 export function renderMarkdown(markdown, opts = {}) {
@@ -170,6 +176,7 @@ export function renderMarkdown(markdown, opts = {}) {
     .split('\n');
 
   const ids = opts.headingIds ?? new Set();
+  const collect = Array.isArray(opts.collect) ? opts.collect : null;
   const out = [];
   let i = 0;
 
@@ -207,6 +214,7 @@ export function renderMarkdown(markdown, opts = {}) {
       const level = atx[2].length;
       const text = atx[3];
       const id = slugify(text, ids);
+      if (collect) collect.push({ level, text: markdownToText(text), id });
       out.push(
         `<h${level} id="${escapeHtml(id)}">${renderInline(text)}` +
         `<a class="header-anchor" href="#${escapeHtml(id)}" aria-hidden="true"></a></h${level}>`,
@@ -222,6 +230,7 @@ export function renderMarkdown(markdown, opts = {}) {
     if (i + 1 < lines.length && /^ {0,3}(=+|-{2,})\s*$/.test(lines[i + 1]) && !/^\s*$/.test(line) && !RE_UL.test(line)) {
       const level = lines[i + 1].trim().startsWith('=') ? 1 : 2;
       const id = slugify(line, ids);
+      if (collect) collect.push({ level, text: markdownToText(line.trim()), id });
       out.push(`<h${level} id="${escapeHtml(id)}">${renderInline(line.trim())}<a class="header-anchor" href="#${escapeHtml(id)}" aria-hidden="true"></a></h${level}>`);
       i += 2;
       continue;
@@ -305,12 +314,29 @@ export function renderMarkdown(markdown, opts = {}) {
           continue;
         }
 
-        // Continuation of the previous item's text (indented or lazy).
-        if (items.length && (/^\s{2,}/.test(l) || !RE_FENCE.test(l))) {
-          const last = items[items.length - 1];
-          last.text += '\n' + l.replace(/^\s+/, '');
-          i++;
-          continue;
+        // Continuation of the previous item's text.
+        //
+        // Two ways a line can continue the current <li>:
+        //   · it is indented far enough to belong to the item's own block
+        //   · it directly follows the item with no blank line in between
+        //     ("lazy continuation", e.g. `- a` then `b` on the next line)
+        //
+        // Anything that starts a new block (heading, quote, rule, fence) ends
+        // the list unless it is indented, and a blank line followed by an
+        // unindented line also ends it. Without these guards a heading written
+        // after a list used to be swallowed into the last <li> as plain text.
+        if (items.length) {
+          const indented = /^\s{2,}/.test(l);
+          const startsBlock =
+            RE_FENCE.test(l) || RE_ATX.test(l) || RE_HR.test(l) || RE_QUOTE.test(l);
+          const continues = indented ? !RE_FENCE.test(l) : blankStreak === 0 && !startsBlock;
+
+          if (continues) {
+            const last = items[items.length - 1];
+            last.text += '\n' + l.replace(/^\s+/, '');
+            i++;
+            continue;
+          }
         }
 
         break;
